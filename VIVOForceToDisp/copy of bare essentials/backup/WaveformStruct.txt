@@ -1,0 +1,121 @@
+
+//==========================Version 120 Waveform structure===========================//
+
+//===================== waveform structures
+#define WAVEFORM_FILE_VERSION  112  //new
+#define COMP_REC_AUTHENTIC 572151 
+#define WAVEFORMS_PER_FILE 8
+#define WAVE_PTS 1024
+#define MAX_STATION_AXIS 8
+
+
+/*	 Data members of Q_Struct are broken out in their own structure, then incorporated 
+	 in Q_Struct using an anonymous union.
+	 The #define is cumbersome, but it lets us maintain the code in a single location.
+	 (alternative would be to put this code in an #include file; that would permit use
+	 of //-style comments. )
+*/
+
+#pragma	pack()
+
+#define Q_DATA_DEF \
+	double	Cos[MAX_BINS];		/* Re of argument */ \
+	double	Sin[MAX_BINS];		/* Im of argument */ \
+	union	{ \
+		double	Frq0[MAX_BINS+1];		/* address all magnitudes, but indices do not line up with bins of Cos and Sin. */ \
+		struct	{ \
+			double	DCMag;				/* scalar DC (zero frequency) magnitude */ \
+			double	FrqMag[MAX_BINS];	/* indices line up with Cos and Sin */ \
+		}; \
+	}; \
+	double	RMS; \
+	int		ActiveBins;			/* count of non-zero frequencies. DC is always assumed to be present. */ \
+	/* Q_Data.ActiveBins == Q_Comb.NFrq for DFT analysis or reconstruction */ \
+ 
+struct Q_Data { 
+	Q_DATA_DEF
+};
+
+#pragma pack(8)
+
+struct SC_Init{
+	double SC[1024];
+	Q_Data SHC;
+	bool bQValid;			  //Do we have protected bins - determines whether to0 start corrected or not
+	bool bILCInitialized;     //This get set to true at any point where ILC is initialized, Determines wether to adjust ILC comp cPos on start
+	bool bCorrectEPos;		   //If false, the last run was a discovery run do not correct for ePos when saving
+	double ePosDif;			  //The ePos from whenever the wave was last started
+	double cPos;		      //The CPos from the haptic map run	
+	double offset;			  //This is an extra variable	
+};
+
+struct CompRecord
+{
+	int version;
+	SC_Init scInit[MAX_STATION_AXIS];
+	int iSCompValid;
+	int iSItAdjustedForCPos;
+	int compType;
+};
+
+struct WaveTableEntry
+{
+	double Amplitude[WAVEFORMS_PER_FILE];
+};
+
+struct WaveSourceInfo
+{
+	char SourceFile[_MAX_PATH];			//Where the waveform came from 
+	short SourceColumn;
+};
+
+struct WaveFormFile
+{
+	int version;						 //Must be set see below - see below
+	CompRecord comp;					 //must be initialized properly or bad news - see below	
+	WaveTableEntry Waveform[WAVE_PTS];   //The wave points will be in mm, N, N-m 
+	WaveTableEntry ScaleFactor;          // I think not used? maybe init to zero
+	WaveTableEntry Offset;			     // I think not used? maybe init to zero
+	char Comments[80+1];				 	
+	char WaveformName[80+1];
+	char Date[20+1];
+	struct WaveSourceInfo Source[WAVEFORMS_PER_FILE];
+};
+
+void  CWaveForm::SetCompensationToZero( void)
+{
+	struct WaveFormFile *rec;
+	int axis = 0;
+
+	rec = &waveFile;
+	rec->comp.compType = COMP_REC_AUTHENTIC;
+	rec->comp.version = WAVEFORM_FILE_VERSION;
+	rec->comp.iSCompValid = 0;
+	rec->comp.iSItAdjustedForCPos = 0;
+
+	for(axis = 0;axis < MAX_STATION_AXIS;axis++)
+	{
+		rec->comp.scInit[axis].cPos = 0.0;
+		rec->comp.scInit[axis].ePosDif = 0.0;
+		rec->comp.scInit[axis].offset = 0.0;
+		rec->comp.scInit[axis].bQValid = false;
+		rec->comp.scInit[axis].bCorrectEPos = false;
+		rec->comp.scInit[axis].bILCInitialized = false;
+		memset(&rec->comp.scInit[axis],'\0',sizeof(SC_Init)); 
+	}
+}
+
+void CTemplateEdit::OnButtonSavewave() 
+{
+	extern CConfigUtils Config;
+	CString str;
+	CFile cFile;
+	if(true == p_Wave->WasWaveFormModified())
+	{
+		p_Wave->SetCompensationToZero();
+	}
+	p_Wave->waveFile.version = WAVEFORM_FILE_VERSION;
+	if(p_Wave->SaveWaveFile() == 0)
+	{
+	}
+}
