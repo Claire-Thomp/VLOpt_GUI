@@ -5,7 +5,7 @@ ligmdl = {[0,0,0,0,-10,10,50,50]}; % Px, PY, PZ, DX, DY, DZ, K, RefStrain
 %reference pose 
 refpos = [0,0,0,0,0,0];
 
-%number of ligs 
+%%number of ligs 
 nligs = length(ligmdl);
 %number of poses
 ntc = length(testc);
