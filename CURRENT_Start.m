@@ -40,9 +40,10 @@ InnerMLLength = 39.25; % mm
 disc_height = 9.4; % mm
 OuterLamenaThickness = 0.55; % mm
 InnerLamenaThickness = 0.55; % mm
+LamenaThickness = 0.55;
 numLigs = 12;
 flipped = 0; %0 = none, 1 = angled, 2 = straight
-coupled = 1; % 0 = no, 1 = yes
+coupled = 3; % 0 = no, 1 = yes
 numEllipses = 2;
 RefPose = [0,0,0,0,0,0]; %1x6 array with the corresponding reference coordinates
 
@@ -55,9 +56,12 @@ if coupled == 0
 %Made from ellipse 
     [ProxCoords, DistCoords, Prox_flipped, Dist_flipped] = GetLigCoordinates(OuterAPLength, OuterMLLength, ...
         InnerAPLength, InnerMLLength, disc_height, OuterLamenaThickness, InnerLamenaThickness, numLigs, flipped, numEllipses, coupled);
-else 
+elseif coupled ==1 
     [ProxCoords, DistCoords] = GetLigCoordinates(OuterAPLength, OuterMLLength, ...
         InnerAPLength, InnerMLLength, disc_height, OuterLamenaThickness, InnerLamenaThickness, numLigs, flipped, numEllipses, coupled);
+else 
+    [ProxCoords, DistCoords] = GetLigCoordinates(OuterAPLength, OuterMLLength, InnerAPLength, InnerMLLength, disc_height, ...
+    LamenaThickness, numLigs, 45);
 end
 
 %if sectioning the disc into quadrants 
